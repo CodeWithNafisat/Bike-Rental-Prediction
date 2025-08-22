@@ -54,15 +54,16 @@ with st.sidebar:
     )
 
 if st.button('Submit'):
-        # Arrange inputs into DataFrame (for SHAP)
-        data = pd.DataFrame([[
-            season, yr, mnth, holiday, weekday, 
-            workingday, weathersit, temp, atemp, 
-            hum, windspeed, Day
+    # Arrange inputs into DataFrame (for SHAP)
+    data = pd.DataFrame([[
+        season, yr, mnth, holiday, weekday, 
+        workingday, weathersit, temp, atemp, 
+        hum, windspeed, Day
         ]], columns = FEATURE_NAMES)
-
+    
     prediction = model.predict(data)[0]
     st.success(f'Predicted number of bikes to rent: {int(prediction)}')
+    
         
     data2 = pd.read_csv(r"sample.csv")
         
