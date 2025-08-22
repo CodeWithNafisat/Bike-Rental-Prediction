@@ -5,8 +5,6 @@ import shap
 import matplotlib.pyplot as plt
 import joblib
 
-
-# Load trained model
 model = joblib.load("Bike.pkl")
 
 FEATURE_NAMES = [
@@ -63,24 +61,21 @@ with st.sidebar:
             hum, windspeed, Day
         ]], columns = FEATURE_NAMES)
 
-# Prediction
 prediction = model.predict(data)[0]
 st.success(f'Predicted number of bikes to rent: {int(prediction)}')
     
-# Load sample dataset (for background reference)
-data2 = pd.read_csv(r"C:\Users\Dell\Streamlit\Bike\sample.csv")
+data2 = pd.read_csv(r"sample.csv")
     
-# Background dataset for SHAP (sample for speed)
 background_data = data2.sample(200, random_state=20)
 
-# ---- STEP 2: Create SHAP explainer ----
+# Create SHAP explainer
 explainer = shap.KernelExplainer(model.predict, background_data)
     
-# ---- STEP 3: Compute SHAP values for user input ----
+# Compute SHAP values for user input
 shap_values = explainer.shap_values(data)
 shap_values_instance = shap_values[0]
     
-# ---- STEP 4: Build SHAP Explanation object ----
+#  Build SHAP Explanation object 
 shap_exp = shap.Explanation(
 values  = np.round(shap_values_instance).astype(int),
 base_values   = int(round(explainer.expected_value)),
@@ -94,7 +89,6 @@ plt.title(
 f"SHAP Waterfall Plot\nPredicted Value: {int(model.predict(data)[0])}",
 fontsize=12, pad = 20)
 
-# Explanatory text below plot using plt.subplots_adjust + ax.text
 plt.subplots_adjust(bottom=0.25)  # make room for text at the bottom
 
 plt.figtext(
