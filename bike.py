@@ -40,13 +40,13 @@ with st.sidebar:
     weather_choice = st.selectbox("Weather", ["Clear", "Mist", "Light Snow/Rain"])
     weathersit = weather_situation_map[weather_choice]
 
-    temp = st.number_input("Normalized Temperature (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+    temp = st.slider("Normalized Temperature", 0.0, 1.0, 0.5, 0.01)
 
-    atemp = st.number_input("Normalized Feeling Temperature (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+    atemp = st.slider("Normalized Feeling Temperature (0 to 1)", 0.0, 1.0, 0.5, 0.01)
 
-    hum = st.number_input( "Humidity (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+    hum = st.slider("Humidity", 0.0, 1.0, 0.5, 0.01)
     
-    windspeed = st.number_input("Windspeed (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01,
+    windspeed = st.slider("Windspeed (0 to 1)", 0.0, 1.0, 0.5, 0.01,
         help="Enter the normalized wind speed (0=calm, 1=very windy)"
     )
 
@@ -55,54 +55,57 @@ with st.sidebar:
         help="Enter the day of the month (1-31)"
     )
 
-if st.button('Submit'):
-    # Arrange inputs into DataFrame (for SHAP)
-    data = pd.DataFrame([[
-        season, yr, mnth, holiday, weekday, 
-        workingday, weathersit, temp, atemp, 
-        hum, windspeed, Day
-    ]], columns = FEATURE_NAMES)
+    if st.button('Submit'):
+        # Arrange inputs into DataFrame (for SHAP)
+        data = pd.DataFrame([[
+            season, yr, mnth, holiday, weekday, 
+            workingday, weathersit, temp, atemp, 
+            hum, windspeed, Day
+        ]], columns = FEATURE_NAMES)
 
-    # Prediction
-    prediction = model.predict(data)[0]
-    st.success(f'Predicted number of bikes to rent: {int(prediction)}')
+# Prediction
+prediction = model.predict(data)[0]
+st.success(f'Predicted number of bikes to rent: {int(prediction)}')
     
-    data2 = pd.read_csv(r"sample.csv")
-    background_data = data2.sample(200, random_state=20)
+# Load sample dataset (for background reference)
+data2 = pd.read_csv(r"C:\Users\Dell\Streamlit\Bike\sample.csv")
     
-    explainer = shap.KernelExplainer(model.predict, background_data)
-    
-    shap_values = explainer.shap_values(data)
-    shap_values_instance = shap_values[0]
-    
-    shap_exp = shap.Explanation(
-        values        = np.round(shap_values_instance).astype(int),
-        base_values   = int(round(explainer.expected_value)),
-        data          = data.iloc[0],         # convert to 1D row
-        feature_names = data.columns
-    )
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    shap.plots.waterfall(shap_exp, show=False)
-    
-    plt.title(
-        f"SHAP Waterfall Plot\nPredicted Value: {int(model.predict(data)[0])}",
-        fontsize=12
-    )
-    
-    plt.subplots_adjust(bottom=0.25)
+# Background dataset for SHAP (sample for speed)
+background_data = data2.sample(200, random_state=20)
 
-    plt.figtext(
-        0.5, -0.2,
-        "This plot shows how each feature contributed to the prediction.\n"
-        "Red bars increase the prediction, blue bars decrease it.\n"
-        "The model starts from the baseline and adds/subtracts contributions\n"
-        "to arrive at the final prediction.",
-        ha="center", fontsize = 15, wrap = True
-    )
+# ---- STEP 2: Create SHAP explainer ----
+explainer = shap.KernelExplainer(model.predict, background_data)
     
-    plt.tight_layout()
-    st.pyplot(fig)
+# ---- STEP 3: Compute SHAP values for user input ----
+shap_values = explainer.shap_values(data)
+shap_values_instance = shap_values[0]
     
+# ---- STEP 4: Build SHAP Explanation object ----
+shap_exp = shap.Explanation(
+values  = np.round(shap_values_instance).astype(int),
+base_values   = int(round(explainer.expected_value)),
+data          = data.iloc[0],         # convert to 1D row
+feature_names = data.columns)
+    
+fig, ax = plt.subplots(figsize=(10, 6))
+shap.plots.waterfall(shap_exp, show = False)
+    
+plt.title(
+f"SHAP Waterfall Plot\nPredicted Value: {int(model.predict(data)[0])}",
+fontsize=12, pad = 20)
 
+# Explanatory text below plot using plt.subplots_adjust + ax.text
+plt.subplots_adjust(bottom=0.25)  # make room for text at the bottom
+
+plt.figtext(
+    0.5, -0.2,
+    "This plot shows how each feature contributed to the prediction.\n"
+    "Red bars increase the prediction, blue bars decrease it.\n"
+    "The model starts from the baseline and adds/subtracts contributions\n"
+    "to arrive at the final prediction.",
+    ha="center", fontsize = 15, wrap = True)
+    
+plt.tight_layout()
+    
+st.pyplot(fig)
     
