@@ -45,7 +45,7 @@ if st.button('Submit'):
     st.success(f'Predicted number of bikes to rent: {int(prediction)}')
     
     # Load full dataset (for background reference)
-    data2 = pd.read_csv(r"C:\Users\Dell\Streamlit\Bike\sample.csv")
+    data2 = pd.read_csv(r"data\sample.csv")
     
     # Background dataset for SHAP (sample for speed)
     background_data = data2.sample(200, random_state=20)
