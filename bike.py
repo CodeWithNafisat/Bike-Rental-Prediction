@@ -5,6 +5,7 @@ import shap
 import matplotlib.pyplot as plt
 import joblib
 
+
 # Load trained model
 model = joblib.load("Bike.pkl")
 
@@ -13,24 +14,46 @@ FEATURE_NAMES = [
     'workingday', 'weathersit', 'temp', 'atemp', 
     'hum', 'windspeed', 'Day']
 
-st.title('Bike Count Prediction on Daily Basis')
+st.title('**Bike Count Prediction on Daily Basis**')
 st.image("bike.jpg", caption="Bike Sharing System", use_container_width=True)
 
 with st.sidebar:
-    st.write('Fill in your details to see the recommended bike count')
+    st.write('**Fill in your details to see the recommended bike count**')
 
-    season = st.number_input("Season (1 = Winter, 2 = Spring, 3 = Summer, 4 = Fall)", 1, 4, 1)
+    season_map = {"Winter": 1, "Spring": 2, "Summer": 3, "Fall": 4}
+    season_choice = st.selectbox("Season", ["Winter", "Spring", "Summer", "Fall"], index=0)
+    season = season_map[season_choice]
+    
     yr = st.number_input("Year (0 = 2011, 1 = 2012)", 0, 1, 0)
-    mnth = st.number_input("Month (1-12)", 1, 12, 1)
-    holiday = st.number_input("Holiday (0 = No, 1 = Yes)", 0, 1, 0)
-    weekday = st.number_input("Weekday (0 = Sunday ... 6 = Saturday)", 0, 6, 0)
-    workingday = st.number_input("Working Day (0 = No, 1 = Yes)", 0, 1, 0)
-    weathersit = st.number_input("Weather Situation (1 = Clear, 2 = Mist, 3 = Light Snow/Rain)", 1, 3, 1)
-    temp = st.number_input("Normalized Temperature (0 to 1)", 0.0, 1.0, 0.5, step=0.01)
-    atemp = st.number_input("Normalized Feeling Temperature (0 to 1)", 0.0, 1.0, 0.5, step=0.01)
-    hum = st.number_input("Humidity (0 to 1)", 0.0, 1.0, 0.5, step=0.01)
-    windspeed = st.number_input("Windspeed (0 to 1)", 0.0, 1.0, 0.5, step=0.01)
-    Day = st.number_input("Day of Month (1-31)", 1, 31, 1)
+
+    mnth = st.number_input("Enter the month as a number (1=Jan, 2=Feb, ... 12=Dec)", min_value=1, max_value=12, value=1)
+
+    holiday = st.number_input("Holiday (0 = No, 1 = Yes)", min_value=0, max_value=1, value=0)
+    
+    weekday_map = {"Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6}
+    weekday_choice = st.selectbox("Weekday", ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], index=0)
+    weekday = weekday_map[weekday_choice]
+
+    workingday = st.number_input("Working Day (0 = No, 1 = Yes)", min_value=0, max_value=1, value=0)
+
+    weather_situation_map = {"Clear" : 1, "Mist" : 2, "Light snow/Rain" : 3}
+    weather_choice = st.selectbox("Weather", ["Clear", "Mist", "Light Snow/Rain"])
+    weathersit = weather_situation_map[weather_choice]
+
+    temp = st.number_input("Normalized Temperature (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+
+    atemp = st.number_input("Normalized Feeling Temperature (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+
+    hum = st.number_input( "Humidity (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+    
+    windspeed = st.number_input("Windspeed (0 to 1)", min_value=0.0, max_value=1.0, value=0.5, step=0.01,
+        help="Enter the normalized wind speed (0=calm, 1=very windy)"
+    )
+
+    Day = st.number_input(
+        "Day of Month (1-31)", min_value=1, max_value=31, value=1,
+        help="Enter the day of the month (1-31)"
+    )
 
 if st.button('Submit'):
     # Arrange inputs into DataFrame (for SHAP)
@@ -44,23 +67,17 @@ if st.button('Submit'):
     prediction = model.predict(data)[0]
     st.success(f'Predicted number of bikes to rent: {int(prediction)}')
     
-    # Load full dataset (for background reference)
     data2 = pd.read_csv(r"sample.csv")
-    
-    # Background dataset for SHAP (sample for speed)
     background_data = data2.sample(200, random_state=20)
     
-    # ---- STEP 2: Create SHAP explainer ----
     explainer = shap.KernelExplainer(model.predict, background_data)
     
-    # ---- STEP 3: Compute SHAP values for user input ----
     shap_values = explainer.shap_values(data)
     shap_values_instance = shap_values[0]
     
-    # ---- STEP 4: Build SHAP Explanation object ----
     shap_exp = shap.Explanation(
-        values        = shap_values_instance,
-        base_values   = explainer.expected_value,
+        values        = np.round(shap_values_instance).astype(int),
+        base_values   = int(round(explainer.expected_value)),
         data          = data.iloc[0],         # convert to 1D row
         feature_names = data.columns
     )
@@ -69,22 +86,23 @@ if st.button('Submit'):
     shap.plots.waterfall(shap_exp, show=False)
     
     plt.title(
-        f"SHAP Waterfall Plot\nPredicted Value: {model.predict(data)[0]:.2f}",
+        f"SHAP Waterfall Plot\nPredicted Value: {int(model.predict(data)[0])}",
         fontsize=12
     )
     
+    plt.subplots_adjust(bottom=0.25)
+
     plt.figtext(
-        0.5, -0.05,
+        0.5, -0.2,
         "This plot shows how each feature contributed to the prediction.\n"
         "Red bars increase the prediction, blue bars decrease it.\n"
         "The model starts from the baseline and adds/subtracts contributions\n"
         "to arrive at the final prediction.",
-        ha="center", fontsize=10, wrap=True
+        ha="center", fontsize = 15, wrap = True
     )
     
     plt.tight_layout()
-    
-    # ---- STEP 6: Render in Streamlit ----
     st.pyplot(fig)
+    
 
     
