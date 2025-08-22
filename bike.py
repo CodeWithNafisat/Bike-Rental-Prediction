@@ -53,7 +53,7 @@ with st.sidebar:
         help="Enter the day of the month (1-31)"
     )
 
-    if st.button('Submit'):
+if st.button('Submit'):
         # Arrange inputs into DataFrame (for SHAP)
         data = pd.DataFrame([[
             season, yr, mnth, holiday, weekday, 
@@ -61,45 +61,45 @@ with st.sidebar:
             hum, windspeed, Day
         ]], columns = FEATURE_NAMES)
 
-prediction = model.predict(data)[0]
-st.success(f'Predicted number of bikes to rent: {int(prediction)}')
+    prediction = model.predict(data)[0]
+    st.success(f'Predicted number of bikes to rent: {int(prediction)}')
+        
+    data2 = pd.read_csv(r"sample.csv")
+        
+    background_data = data2.sample(200, random_state=20)
     
-data2 = pd.read_csv(r"sample.csv")
+    # Create SHAP explainer
+    explainer = shap.KernelExplainer(model.predict, background_data)
+        
+    # Compute SHAP values for user input
+    shap_values = explainer.shap_values(data)
+    shap_values_instance = shap_values[0]
+        
+    #  Build SHAP Explanation object 
+    shap_exp = shap.Explanation(
+    values  = np.round(shap_values_instance).astype(int),
+    base_values   = int(round(explainer.expected_value)),
+    data          = data.iloc[0],         # convert to 1D row
+    feature_names = data.columns)
+        
+    fig, ax = plt.subplots(figsize=(10, 6))
+    shap.plots.waterfall(shap_exp, show = False)
+        
+    plt.title(
+    f"SHAP Waterfall Plot\nPredicted Value: {int(model.predict(data)[0])}",
+    fontsize=12, pad = 20)
     
-background_data = data2.sample(200, random_state=20)
-
-# Create SHAP explainer
-explainer = shap.KernelExplainer(model.predict, background_data)
+    plt.subplots_adjust(bottom=0.25)  # make room for text at the bottom
     
-# Compute SHAP values for user input
-shap_values = explainer.shap_values(data)
-shap_values_instance = shap_values[0]
-    
-#  Build SHAP Explanation object 
-shap_exp = shap.Explanation(
-values  = np.round(shap_values_instance).astype(int),
-base_values   = int(round(explainer.expected_value)),
-data          = data.iloc[0],         # convert to 1D row
-feature_names = data.columns)
-    
-fig, ax = plt.subplots(figsize=(10, 6))
-shap.plots.waterfall(shap_exp, show = False)
-    
-plt.title(
-f"SHAP Waterfall Plot\nPredicted Value: {int(model.predict(data)[0])}",
-fontsize=12, pad = 20)
-
-plt.subplots_adjust(bottom=0.25)  # make room for text at the bottom
-
-plt.figtext(
-    0.5, -0.2,
-    "This plot shows how each feature contributed to the prediction.\n"
-    "Red bars increase the prediction, blue bars decrease it.\n"
-    "The model starts from the baseline and adds/subtracts contributions\n"
-    "to arrive at the final prediction.",
-    ha="center", fontsize = 15, wrap = True)
-    
-plt.tight_layout()
-    
-st.pyplot(fig)
-    
+    plt.figtext(
+        0.5, -0.2,
+        "This plot shows how each feature contributed to the prediction.\n"
+        "Red bars increase the prediction, blue bars decrease it.\n"
+        "The model starts from the baseline and adds/subtracts contributions\n"
+        "to arrive at the final prediction.",
+        ha="center", fontsize = 15, wrap = True)
+        
+    plt.tight_layout()
+        
+    st.pyplot(fig)
+        
